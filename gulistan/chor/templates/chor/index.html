@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusShare | Minimalist Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050505;
+            --editor-bg: #0a0a0a;
+            --accent-color: #38bdf8;
+            --text-color: #e2e8f0;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding-bottom: 100px;
+        }
+
+        #main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px;
+        }
+
+        #editor-wrapper {
+            height: 500px;
+            margin-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        textarea {
+            flex: 1;
+            background: var(--editor-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-color);
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            padding: 24px;
+            resize: none;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        textarea:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Uploaded Files Styling */
+        #files-list {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .file-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .file-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 10px;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .file-content {
+            background: #000;
+            border: 1px solid var(--glass-border);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            white-space: pre-wrap;
+            font-size: 14px;
+            color: #cbd5e1;
+            width: 100%;
+            min-height: 100px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            resize: vertical;
+            outline: none;
+            display: block;
+        }
+        
+        .file-content:focus {
+            border-color: var(--accent-color);
+        }
+
+        .btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            
+            transform: translateY(-2px);
+        }
+
+        .btn-save {
+            background: rgba(0, 0, 0, 0.1);
+            color: #ffffff;
+            border-color: rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-save:hover {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .floating-upload {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .upload-btn-main {
+            background: var(--accent-color);
+            color: #000;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(56, 189, 248, 0.4);
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn-main:hover {
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        #status {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            font-size: 11px;
+            color: #475569;
+        }
+
+        /* Overlay */
+        #drop-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(56, 189, 248, 0.1);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            border: 4px dashed var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+    <div id="drop-overlay">
+        <h2 style="color: var(--accent-color); font-size: 2rem;">Drop to share file</h2>
+    </div>
+
+    {% csrf_token %}
+    <div id="main-container">
+        <div id="editor-wrapper">
+            <h3 class="section-title">
+                <span style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%;"></span>
+                Live Editor
+            </h3>
+            <textarea id="editor" placeholder="Write something or share a file...">{{ content }}</textarea>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <input type="text" id="snippet-title" placeholder="Filename / Title (optional)" 
+                    style="background: var(--glass-bg); border: 1px solid var(--glass-border); color: #fff; padding: 10px 15px; border-radius: 8px; flex: 1; font-size: 14px; outline: none;">
+            </div>
+        </div>
+
+        <h3 class="section-title">Shared Files</h3>
+        <div id="files-list">
+            {% for file in files %}
+            <div class="file-card" id="file-{{ file.id }}">
+                <div class="file-header">
+                    <span class="file-name">{{ file.filename }}</span>
+                    <span style="font-size: 11px; color: #475569;">{{ file.uploaded_at|timesince }} ago</span>
+                </div>
+                <textarea class="file-content" id="content-{{ file.id }}">{{ file.content }}</textarea>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="updateFileContent({{ file.id }})" class="btn btn-save">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                        Save
+                    </button>
+                    <a href="{% url 'download' file.id %}" class="btn">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Download
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="status">Ready</div>
+
+    <div class="floating-upload">
+        <button class="upload-btn-main" onclick="document.getElementById('file-input').click()">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+        </button>
+    </div>
+
+    <input type="file" id="file-input" style="display: none;" onchange="handleFileUpload(this.files[0])">
+
+    <script>
+        const editor = document.getElementById('editor');
+        const statusText = document.getElementById('status');
+        const filesList = document.getElementById('files-list');
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        let lastContent = editor.value;
+        let isTyping = false;
+
+        async function syncData(force = false) {
+            if (isTyping && !force) return;
+
+            try {
+                const response = await fetch('{% url "sync" %}');
+                const data = await response.json();
+                
+                if (data.content !== editor.value) {
+                    editor.value = data.content;
+                    lastContent = data.content;
+                }
+
+                updateFilesUI(data.files);
+                statusText.innerText = `Connected • ${data.files.length} shared items`;
+            } catch (err) {
+                statusText.innerText = 'Offline';
+            }
+        }
+
+        function updateFilesUI(files) {
+            if (!files) return;
+            const currentIds = Array.from(filesList.children)
+                .filter(c => c.id.startsWith('file-'))
+                .map(c => parseInt(c.id.replace('file-', '')));
+            const newIds = files.map(f => f.id);
+
+            if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
+                let html = '';
+                files.forEach(f => {
+                    html += `
+                        <div class="file-card" id="file-${f.id}">
+                            <div class="file-header">
+                                <span class="file-name">${escapeHtml(f.filename || 'unnamed')}</span>
+                                <span style="font-size: 11px; color: #475569;">Shared recently</span>
+                            </div>
+                            <textarea class="file-content" id="content-${f.id}">${f.content}</textarea>
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="updateFileContent(${f.id})" class="btn btn-save">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                                    Save
+                                </button>
+                                <a href="/download/${f.id}/" class="btn">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    Download
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                });
+                filesList.innerHTML = html || '<p style="color: #475569; font-size: 13px;">No files shared yet.</p>';
+            }
+        }
+
+        async function updateFileContent(id) {
+            const newContent = document.getElementById(`content-${id}`).value;
+            statusText.innerText = 'Saving changes...';
+            try {
+                const res = await fetch(`/update/${id}/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                    body: JSON.stringify({ content: newContent })
+                });
+                if (res.ok) {
+                    statusText.innerText = 'Changes saved';
+                    setTimeout(() => { statusText.innerText = 'Connected'; }, 2000);
+                }
+            } catch (err) {
+                statusText.innerText = 'Save failed';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function updateEditor() {
+            if (editor.value === lastContent) return;
+            try {
+                const response = await fetch('{% url "sync" %}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                    body: JSON.stringify({ content: editor.value })
+                });
+                if (response.ok) lastContent = editor.value;
+            } catch (err) {}
+        }
+
+        editor.addEventListener('input', () => {
+            isTyping = true;
+            clearTimeout(window.t);
+            window.t = setTimeout(() => { isTyping = false; updateEditor(); }, 500);
+        });
+
+        async function handleFileUpload(file) {
+            if (!file) return;
+            isTyping = true;
+            statusText.innerText = 'Uploading...';
+            const fd = new FormData();
+            fd.append('file', file);
+            const titleInput = document.getElementById('snippet-title');
+            if (titleInput && titleInput.value) fd.append('title', titleInput.value);
+            
+            try {
+                const res = await fetch('{% url "upload" %}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken },
+                    body: fd
+                });
+                if (!res.ok) {
+                    statusText.innerText = `Upload Failed: ${res.status}`;
+                    return;
+                }
+                const data = await res.json();
+                if (data.status === 'success') {
+                    statusText.innerText = `Uploaded: ${data.filename} (Total: ${data.total})`;
+                    syncData(true);
+                }
+            } catch (err) {
+                statusText.innerText = 'Network Error';
+            } finally {
+                setTimeout(() => { isTyping = false; }, 2000);
+            }
+        }
+
+        setInterval(syncData, 3000);
+
+        const overlay = document.getElementById('drop-overlay');
+        window.addEventListener('dragover', (e) => { e.preventDefault(); overlay.style.display = 'flex'; });
+        overlay.addEventListener('dragleave', () => overlay.style.display = 'none');
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            overlay.style.display = 'none';
+            handleFileUpload(e.dataTransfer.files[0]);
+        });
+    </script>
+</body>
+</html>
